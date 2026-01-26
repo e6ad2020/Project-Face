@@ -305,9 +305,9 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full text-center flex flex-col justify-center pointer-events-none"
+                className="absolute inset-0 w-full text-center flex flex-col items-center pt-8 overflow-y-auto pb-24 pointer-events-none"
               >
-                <div className="mb-0 pointer-events-auto mt-12">
+                <div className="mb-0 pointer-events-auto mt-4 md:mt-8">
                   <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} />
                 </div>
 
@@ -336,26 +336,26 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full flex flex-col items-center justify-center pt-8"
+                className="absolute inset-0 w-full flex flex-col items-center pt-4 md:pt-8 overflow-y-auto pb-20"
                 onClick={nextStep}
               >
-                <div className="text-center mb-4 shrink-0 mt-8">
+                <div className="text-center mb-4 shrink-0 mt-4 md:mt-8">
                   <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} />
-                  <h2 className="text-3xl md:text-4xl font-light text-gray-900 mt-2">Your skin routine</h2>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-light text-gray-900 mt-2 px-4">Your skin routine</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start w-full px-4 md:px-0">
-                  <div className="md:col-span-7 bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm flex flex-col md:flex-row gap-6">
-                    <div className="w-full md:w-1/3 aspect-[3/5] relative">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-start w-full px-4 max-w-6xl mx-auto">
+                  <div className="md:col-span-7 bg-white rounded-[2rem] p-5 md:p-6 border border-gray-100 shadow-sm flex flex-col lg:flex-row gap-6">
+                    <div className="w-full lg:w-1/3 aspect-[3/4] md:aspect-[3/5] relative">
                       <img src={products[0].image} className="absolute inset-0 w-full h-full object-contain" />
                     </div>
                     <div className="flex-1 text-left space-y-4">
                       <div>
-                        <h4 className="font-bold text-sm text-gray-900">Eva Skin Clinic Anti-Ageing Gold</h4>
-                        <p className="text-xs text-gray-500">Collagen Skin Rejuvenating Facial Serum 30 ml</p>
+                        <h4 className="font-bold text-sm text-gray-900 leading-tight">Eva Skin Clinic Anti-Ageing Gold</h4>
+                        <p className="text-xs text-gray-500 mt-1">Collagen Skin Rejuvenating Facial Serum 30 ml</p>
                       </div>
-                      <hr />
-                      <ul className="text-xs space-y-3 text-gray-700 leading-relaxed">
+                      <hr className="border-gray-50" />
+                      <ul className="text-xs space-y-2 text-gray-700 leading-relaxed font-light">
                         <li>• <span className="font-bold">Clean First:</span> Wash your face and neck well before using the serum.</li>
                         <li>• <span className="font-bold">Day & Night:</span> Use it every morning and every night for the best results.</li>
                         <li>• <span className="font-bold">Massage:</span> Put 3-4 drops on your skin and rub gently in circles until it disappears.</li>
@@ -365,13 +365,13 @@ export default function SkincareWizard() {
                     </div>
                   </div>
 
-                  <div className="col-span-5">
-                    <h3 className="text-2xl text-center font-light mb-4">What to Expect</h3>
+                  <div className="md:col-span-5 w-full">
+                    <h3 className="text-xl md:text-2xl text-center font-light mb-4">What to Expect</h3>
                     <RoutineTable />
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-2 mt-8">
+                <div className="flex justify-center gap-2 mt-8 mb-4">
                   <div className="w-3 h-3 rounded-full border border-gray-400"></div>
                   <div className="w-3 h-3 rounded-full bg-gray-200"></div>
                   <div className="w-3 h-3 rounded-full bg-gray-200"></div>
@@ -386,9 +386,11 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full text-center flex flex-col items-center justify-center"
+                className="absolute inset-0 w-full text-center flex flex-col items-center md:justify-center overflow-y-auto pt-8 pb-24"
               >
-                <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                <div className="shrink-0 mt-4 md:mt-0">
+                  <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                </div>
 
                 <div className="flex flex-col md:flex-row gap-6 mt-8 md:mt-12 w-full max-w-4xl justify-center items-center">
                   <motion.button
@@ -421,11 +423,13 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full text-center flex flex-col items-center justify-center"
+                className="absolute inset-0 w-full text-center flex flex-col items-center md:justify-center overflow-y-auto pt-8 pb-24"
               >
-                <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                <div className="shrink-0 mt-4 md:mt-0">
+                  <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                </div>
 
-                <h2 className="text-3xl md:text-4xl font-light text-gray-900 my-8 max-w-2xl px-4">
+                <h2 className="text-3xl md:text-4xl font-light text-gray-900 my-8 max-w-2xl px-4 leading-tight">
                   Do you want to follow your skincare routine?
                 </h2>
 
