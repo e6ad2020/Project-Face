@@ -16,7 +16,6 @@ const GEMINI_API_KEY = 'AIzaSyD29FZFtoHsKka5uvWKTOZ1u5xcDzrgtWQ';
 export default function SkincareWizard() {
   const [step, setStep] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isProcessingStep, setIsProcessingStep] = useState(false);
   const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
