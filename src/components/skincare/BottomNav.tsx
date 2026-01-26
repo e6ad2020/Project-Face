@@ -25,18 +25,24 @@ export function BottomNav({ currentStep }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 p-6 pb-8 bg-background/80 backdrop-blur-sm z-50">
       <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-end mb-2 px-4">
+        <div className="grid grid-cols-3 items-end mb-2 px-4">
           {sections.map((section, idx) => (
-            <div key={section.id} className="flex flex-col items-center gap-2">
+            <div
+              key={section.id}
+              className={cn(
+                "flex flex-col gap-2",
+                idx === 0 ? "items-start" : idx === 1 ? "items-center" : "items-end"
+              )}
+            >
               <div
                 className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-300",
-                  activeSection === idx
+                  activeSection >= idx
                     ? "bg-[#D946EF] text-white shadow-lg shadow-purple-200"
                     : "bg-transparent text-gray-300 border-2 border-gray-100"
                 )}
               >
-                <section.icon size={20} strokeWidth={activeSection === idx ? 2 : 1.5} />
+                <section.icon size={20} strokeWidth={activeSection >= idx ? 2 : 1.5} />
               </div>
             </div>
           ))}
@@ -50,10 +56,10 @@ export function BottomNav({ currentStep }: BottomNavProps) {
           />
         </div>
 
-        <div className="flex justify-between mt-2 px-2 text-[10px] uppercase tracking-wider text-gray-400 font-medium">
-          <span>Face shot</span>
-          <span>Questions</span>
-          <span>Your skin routine</span>
+        <div className="grid grid-cols-3 mt-2 px-4 text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+          <span className="text-left">Face shot</span>
+          <span className="text-center">Questions</span>
+          <span className="text-right">Your skin routine</span>
         </div>
       </div>
     </div>
