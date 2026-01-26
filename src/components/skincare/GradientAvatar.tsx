@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 
-export function GradientAvatar({ className = "", size = "lg", isSpeaking = false }: { className?: string, size?: "sm" | "md" | "lg" | "xl", isSpeaking?: boolean }) {
+export function GradientAvatar({ className = "", size = "lg", isSpeaking = false }: { className?: string, size?: "sm" | "md" | "ml" | "lg" | "xl", isSpeaking?: boolean }) {
   const sizeClasses = {
     sm: "w-12 h-12",
     md: "w-28 h-28",
+    ml: "w-36 h-36",
     lg: "w-48 h-48",
     xl: "w-64 h-64"
   };
@@ -11,6 +12,7 @@ export function GradientAvatar({ className = "", size = "lg", isSpeaking = false
   const spacingClasses = {
     sm: "mb-2",
     md: "mb-3",
+    ml: "mb-1",
     lg: "mb-6",
     xl: "mb-8"
   };
