@@ -127,13 +127,23 @@ export default function SkincareWizard() {
 
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        // We could get dataUrl here if needed: const dataUrl = canvas.toDataURL("image/png");
+
+        // Get base64 string (remove data URL prefix)
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        const base64Image = dataUrl.split(",")[1];
+
+        // Send to Gemini if connected
+        if (isConnected) {
+          console.log("📸 Sending photo to Gemini for analysis...");
+          sendImage(base64Image, "image/jpeg");
+          // Inform the model that we sent the photo
+          sendMessage("لقد أرسلت لكِ صورتي الآن. من فضلك حللي بشرتي بناءً على هذه الصورة وقولي لي ماذا ترين.");
+        }
 
         // Stop camera and proceed
         stopCamera();
         nextStep();
 
-        // Inform AI if connected
         console.log("Photo captured. Connected:", isConnected);
       }
     }

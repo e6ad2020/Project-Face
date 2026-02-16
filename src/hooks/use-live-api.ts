@@ -10,6 +10,7 @@ interface UseLiveApiState {
   connect: (apiKey: string) => Promise<void>;
   disconnect: () => void;
   sendMessage: (text: string) => void;
+  sendImage: (base64: string, mimeType?: string) => void;
 }
 
 export function useLiveApi(): UseLiveApiState {
@@ -59,6 +60,7 @@ export function useLiveApi(): UseLiveApiState {
     error,
     connect,
     disconnect,
-    sendMessage
+    sendMessage,
+    sendImage: (base64: string, mimeType?: string) => geminiLive.sendImage(base64, mimeType)
   };
 }
