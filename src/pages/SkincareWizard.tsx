@@ -288,10 +288,10 @@ export default function SkincareWizard() {
                   >
                     <h2 className="text-3xl md:text-5xl font-arabic font-bold text-gray-900 dir-rtl leading-tight">
                       {step === 1 && <TypewriterText text="ايه طبيعة بشرتك؟" />}
-                      {step === 2 && <TypewriterText text="ايه المشاكل البتواجھيھا مع بشرتك؟" />}
+                      {step === 2 && <TypewriterText text="ايه المشاكل اللي بتواجهيها في بشرتك؟" />}
                       {step === 3 && <TypewriterText text="بتستخدمي منتجات للعناية بالبشرة؟" />}
                       {step === 4 && <TypewriterText text="بشرتك حساسة؟" />}
-                      {step === 5 && <TypewriterText text="ايه العایزه توصیلیه مع بشرتك؟" />}
+                      {step === 5 && <TypewriterText text="ايه النتيجة اللي عايزة توصلي لها؟" />}
                     </h2>
                   </motion.div>
                 </div>
