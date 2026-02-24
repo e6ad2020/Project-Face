@@ -1,6 +1,16 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+
+// Function declaration for advancing wizard steps
+const goToNextStepDeclaration = {
+    name: 'go_to_next_step',
+    description: 'انتقلي للخطوة أو السؤال التالي في معالج العناية بالبشرة. استدعي هذه الدالة فوراً بعد ما تردي على إجابة المستخدم وتخلصي كلامك.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {},
+    }
+};
 
 // Configuration for the Live API
 const config = {
@@ -8,31 +18,48 @@ const config = {
     speechConfig: {
         voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }
     },
+    tools: [{
+        functionDeclarations: [goToNextStepDeclaration]
+    }],
     systemInstruction: {
         parts: [{
             text: `أنتِ چوليا، خبيرة عناية بالبشرة مصرية ودودة جداً.
             
-            مهمتك هي توجيه المستخدمة خلال فحص البشرة.
+            مهمتك هي توجيه المستخدم خلال فحص البشرة.
             النظام سيرسل لكِ تعليمات مخفية تخبركِ بالمرحلة الحالية، وعليكِ التحدث بناءً عليها فوراً.
             
-            عندما تستلمي صورة من المستخدمة، قومي بتحليل بشرتها بدقة (المسام، التجاعيد، الحبوب، الهالات، نوع البشرة) واستخدمي هذا التحليل في نصائحك.
+            === قاعدة أساسية ===
+            ممنوع نهائياً أن تتحدثي من تلقاء نفسك أو تبادري بسؤال أو طلب (مثل طلب صورة أو سؤال عن البشرة) إلا إذا أرسل لكِ النظام تعليمات صريحة بذلك.
+            عندما يتصل المستخدم لأول مرة، لا تقولي أي شيء حتى يرسل لك النظام أول تعليمات.
+            انتظري دائماً تعليمات النظام قبل أن تتحدثي.
+            
+            عندما تستلمي صورة من المستخدم، قومي بتحليل بشرته بدقة (المسام، التجاعيد، الحبوب، الهالات، نوع البشرة) واستخدمي هذا التحليل في نصائحك.
 
             === القواعد ===
             1. تحدثي دائماً باللهجة المصرية العامية البسيطة والسهلة الفهم.
-            2. كوني مختصرة ومباشرة جداً في أسئلتك.
-            3. عندما يخبرك النظام "لقد انتقلت للسؤال X"، اسألي السؤال المطلوب فوراً بوضوح تام.
-            4. تجنبي الجمل الطويلة أو المعقدة. الهدف هو أن تفهم المستخدمة السؤال فوراً.
-            5. ممنوع نهائياً ذكر كلمة "مكياج" أو طلب أن تكون المستخدمة "بدون مكياج". افترضي دائماً أن الصورة جاهزة للفحص.
+            2. كوني مختصرة ومباشرة جداً.
+            3. عندما يخبرك النظام بتعليمات، نفذيها فوراً. لا تضيفي أشياء من عندك.
+            4. تجنبي الجمل الطويلة أو المعقدة.
+            5. ممنوع نهائياً ذكر كلمة "مكياج" أو طلب أن يكون المستخدم "بدون مكياج".
+            6. لا تطلبي صورة أبداً إلا إذا طلب منك النظام ذلك صراحة.
 
-            === الأسئلة والسيناريو ===
-            1. الترحيب: رحبي بها بلهجة ودودة واطلبي صورة (هذا يحدث في البداية).
-            2. تحليل الصورة: بمجرد استلام الصورة، اشكريها وقولي ملاحظة بسيطة عنها (مثلاً "بشرتك صافية ما شاء الله" أو "شايفة شوية جفاف بسيط"). ثم انتقلي للأسئلة.
-            3. الأسئلة: ستصلك تعليمات بكل سؤال (نوع البشرة، المشاكل، الروتين، الحساسية، الهدف). اسألي السؤال بوضوح وبساطة.
-            4. الروتين: عندما يطلب منك النظام اقتراح المنتجات، قدميها بحماس.
-            5. التأكيد: في صفحة التأكيد، اسألي المستخدمة عن رأيها في الروتين وهل تريد تغيير أي شيء.
-            6. الختام: في صفحة الختام، قولي: "شكراً ليكي للتجربة! عشان تتابعي الروتين بتاعك، أو لو عندك أي استفسار، ياريت تسيبي رقم تليفونك هنا عشان نسجلك معانا. وبعدها تقدري تنزلي الأبلكيشن بتاعنا عن طريق الـ QR code ده."
+            === قواعد go_to_next_step (مهم جداً) ===
+            - go_to_next_step تُستخدم فقط أثناء مرحلة الأسئلة (بعد تحليل الصورة).
+            - ممنوع نهائياً استدعاء go_to_next_step أثناء مرحلة الترحيب أو التصوير أو المنتجات أو الروتين.
+            - ممنوع نهائياً استدعاء go_to_next_step فور سماع تعليمات النظام أو فور طرح السؤال.
+            - لازم تسمعي إجابة صوتية حقيقية من المستخدم أولاً، ثم تردي عليه بشكل مختصر، وبعدها فقط تستدعي go_to_next_step.
+            - لو المستخدم ما تكلمش أو ما جاوبش، لا تستدعي go_to_next_step أبداً. استنيه يتكلم.
+            - لو النظام قال لك "استني إجابته"، يبقى لازم فعلاً تستني.
 
-            تذكري: المستخدمة لا ترى التعليمات المخفية، لذا تحدثي وكأنكِ تقودين المحادثة طبيعياً.`
+            === السيناريو ===
+            النظام سيرسل لكِ تعليمات في كل مرحلة. التزمي بها حرفياً:
+            - تعليمات الترحيب: رحبي بالمستخدم فقط بدون طلب صورة. لا تستدعي go_to_next_step.
+            - تعليمات التصوير: اطلبي الصورة فقط. لا تستدعي go_to_next_step (النظام سينتقل تلقائياً بعد التقاط الصورة).
+            - تعليمات الأسئلة: في كل مرحلة، سيُرسل لك النظام السؤال الذي يجب أن تسأليه. اسألي هذا السؤال فقط وحصرياً، ثم استني إجابة المستخدم الصوتية. بعد أن يجاوب وتردي عليه، استدعي go_to_next_step فوراً لينقلك النظام للسؤال التالي. لا تسألي أكثر من سؤال واحد في كل مرة.
+            - تعليمات المنتجات والروتين: قدميهم بحماس. لا تستدعي go_to_next_step.
+            - تعليمات الختام: قولي الرسالة الختامية. لا تستدعي go_to_next_step.
+            
+            تذكري: المستخدم لا يرى التعليمات المخفية، لذا تحدثي وكأنكِ تقودين المحادثة طبيعياً.`
         }]
     }
 };
@@ -52,23 +79,45 @@ class GeminiLiveService {
     private onConnectionChange: ((connected: boolean) => void) | null = null;
     private onSpeakingChange: ((speaking: boolean) => void) | null = null;
     private onUserSpeech: ((isSpeech: boolean) => void) | null = null;
+    private onLoadingChange: ((loading: boolean) => void) | null = null;
+    private onFunctionCall: ((functionName: string, args: any) => void) | null = null;
     private silenceTimer: any = null;
     private isUserSpeaking: boolean = false;
+
+    private purposefulDisconnect: boolean = false;
+    private lastGender: 'male' | 'female' = 'female';
+    private lastApiKey: string = '';
 
     constructor() { }
 
     setCallbacks(
         onConnectionChange: (connected: boolean) => void,
         onSpeakingChange: (speaking: boolean) => void,
-        onUserSpeech: (isSpeech: boolean) => void
+        onUserSpeech: (isSpeech: boolean) => void,
+        onLoadingChange?: (loading: boolean) => void,
+        onFunctionCall?: (functionName: string, args: any) => void
     ) {
         this.onConnectionChange = onConnectionChange;
         this.onSpeakingChange = onSpeakingChange;
         this.onUserSpeech = onUserSpeech;
+        this.onLoadingChange = onLoadingChange || null;
+        this.onFunctionCall = onFunctionCall || null;
     }
 
-    async connect(apiKey: string) {
+    async connect(apiKey: string, gender: 'male' | 'female' = 'female') {
+        // If already connected, skip
         if (this.isConnected) return;
+
+        this.purposefulDisconnect = false;
+        this.lastGender = gender;
+        this.lastApiKey = apiKey;
+
+        // If there's a stale session, clean it up first
+        if (this.session) {
+            this.stopAudioInput();
+            this.session = null;
+            await new Promise(r => setTimeout(r, 500));
+        }
 
         try {
             console.log('Initializing Gemini Client with provided key...');
@@ -81,27 +130,47 @@ class GeminiLiveService {
                 throw new Error('Microphone permission denied or audio failed to start');
             }
 
+            const dynamicConfig = {
+                ...config,
+                systemInstruction: {
+                    parts: [{
+                        text: config.systemInstruction.parts[0].text + `\n\n=== تنبيه هام ===\nالمستخدم الحالي هو: ${gender === 'male' ? 'ذكر' : 'أنثى'}. يجب التحدث معه بصيغة ال${gender === 'male' ? 'مذكر (مثال: جاهز؟ صورتك)' : 'مؤنث (مثال: جاهزة؟ صورتك)'} دائماً.`
+                    }]
+                }
+            };
+
             // @ts-ignore
             this.session = await this.client.live.connect({
                 model: MODEL,
-                config: config,
+                config: dynamicConfig,
                 callbacks: {
                     onopen: () => {
                         console.log('✅ Connected to Gemini Live API');
                         this.isConnected = true;
                         this.onConnectionChange?.(true);
-                        setTimeout(() => this.sendInitialGreeting(), 100);
                     },
                     onmessage: (message: any) => {
                         this.handleServerMessage(message);
                     },
                     onerror: (e: any) => {
                         console.error('❌ Gemini Live Error:', e);
-                        this.disconnect();
                     },
                     onclose: (e: any) => {
                         console.log('🔒 Gemini Live Closed:', e);
-                        this.disconnect();
+                        this.isConnected = false;
+                        this.stopAudioInput();
+                        this.session = null;
+                        this.onConnectionChange?.(false);
+
+                        // Auto-reconnect if not a purposeful disconnect
+                        if (!this.purposefulDisconnect && this.lastApiKey) {
+                            console.log('🔄 Auto-reconnecting in 2s...');
+                            setTimeout(() => {
+                                if (!this.isConnected && !this.purposefulDisconnect) {
+                                    this.connect(this.lastApiKey, this.lastGender);
+                                }
+                            }, 2000);
+                        }
                     }
                 }
             });
@@ -114,64 +183,56 @@ class GeminiLiveService {
     }
 
     // Removed the old connect method and merged logic into the main connect
-    async connectWithCallbacks(apiKey: string) {
-        return this.connect(apiKey);
+    async connectWithCallbacks(apiKey: string, gender: 'male' | 'female' = 'female') {
+        return this.connect(apiKey, gender);
     }
 
-    private async sendInitialGreeting() {
+    // sendInitialGreeting method is removed completely
+
+    async disconnect() {
+        // Mark as purposeful disconnect to prevent auto-reconnect
+        this.purposefulDisconnect = true;
+        this.isConnected = false;
+        this.onConnectionChange?.(false);
+
+        // Stop audio to prevent further WebSocket sends
+        this.stopAudioInput();
+
+        // Close session
         if (this.session) {
-            console.log('📤 Sending greeting message to model...');
             try {
-                // Using the format that explicitly requests the model to speak
-                await this.session.sendRealtimeInput({
-                    text: "ابدأي المحادثة ورحبي بي واطلبي مني التقاط صورة لوجهي"
-                });
-            } catch (error) {
-                console.error('❌ Error sending greeting:', error);
+                this.session.close();
+            } catch (e) {
+                // Ignore close errors
             }
+            this.session = null;
         }
     }
 
-    async disconnect() {
-        if (!this.isConnected) return;
-
-        // Stop audio first to prevent "WebSocket closed" spam
-        this.stopAudioInput();
-
-        // Then close session
-        // if (this.session) {
-        //    this.session.close();
-        // }
-
-        this.isConnected = false;
-        this.onConnectionChange?.(false);
-        this.session = null;
-    }
-
     sendMessage(text: string) {
-        if (this.session && this.isConnected) {
-            console.log('📤 Sending message to model:', text);
-            try {
-                this.session.sendRealtimeInput({ text });
-            } catch (error) {
-                console.error('❌ Error sending message:', error);
-            }
+        if (!this.session || !this.isConnected) return;
+        console.log('📤 Sending message to model:', text);
+        this.onLoadingChange?.(true);
+        try {
+            this.session.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true });
+        } catch (error) {
+            console.error('❌ Error sending message:', error);
+            this.onLoadingChange?.(false);
         }
     }
 
     sendImage(base64Image: string, mimeType: string = "image/jpeg") {
-        if (this.session && this.isConnected) {
-            console.log('📤 Sending image to model...');
-            try {
-                this.session.sendRealtimeInput({
-                    mediaChunks: [{
-                        mimeType: mimeType,
-                        data: base64Image
-                    }]
-                });
-            } catch (error) {
-                console.error('❌ Error sending image:', error);
-            }
+        if (!this.session || !this.isConnected) return;
+        console.log('📤 Sending image to model...');
+        try {
+            this.session.sendRealtimeInput({
+                mediaChunks: [{
+                    mimeType: mimeType,
+                    data: base64Image
+                }]
+            });
+        } catch (error) {
+            console.error('❌ Error sending image:', error);
         }
     }
 
@@ -236,14 +297,16 @@ class GeminiLiveService {
                 const base64Audio = this.arrayBufferToBase64(pcm16);
 
                 try {
-                    this.session.sendRealtimeInput({
-                        audio: {
-                            data: base64Audio,
-                            mimeType: "audio/pcm;rate=16000"
-                        }
-                    });
+                    if (this.session && this.isConnected) {
+                        this.session.sendRealtimeInput({
+                            audio: {
+                                data: base64Audio,
+                                mimeType: "audio/pcm;rate=16000"
+                            }
+                        });
+                    }
                 } catch (err) {
-                    console.error("Error sending audio frame:", err);
+                    // Silently ignore - WebSocket may be closing
                 }
             };
 
@@ -274,8 +337,10 @@ class GeminiLiveService {
     }
 
     private handleServerMessage(message: any) {
+        // Handle interruptions
         if (message.serverContent?.interrupted) {
             this.audioQueue = [];
+            this.onLoadingChange?.(false);
             if (this.currentSource) {
                 this.currentSource.stop();
                 this.onSpeakingChange?.(false);
@@ -284,7 +349,35 @@ class GeminiLiveService {
             return;
         }
 
+        // Handle function calls (toolCall)
+        if (message.toolCall) {
+            console.log('🔧 Received toolCall:', JSON.stringify(message.toolCall));
+            const functionCalls = message.toolCall.functionCalls;
+            if (functionCalls && functionCalls.length > 0) {
+                const functionResponses: any[] = [];
+                for (const fc of functionCalls) {
+                    console.log(`🔧 Function call: ${fc.name}`, fc.args);
+                    this.onFunctionCall?.(fc.name, fc.args || {});
+                    functionResponses.push({
+                        id: fc.id,
+                        name: fc.name,
+                        response: { success: true }
+                    });
+                }
+                // Send tool response back to the model
+                try {
+                    this.session?.sendToolResponse({ functionResponses });
+                    console.log('🔧 Sent toolResponse back to model');
+                } catch (err) {
+                    console.error('❌ Error sending toolResponse:', err);
+                }
+            }
+            return;
+        }
+
+        // Handle audio content
         if (message.serverContent?.modelTurn?.parts) {
+            this.onLoadingChange?.(false);
             for (const part of message.serverContent.modelTurn.parts) {
                 if (part.inlineData && part.inlineData.data) {
                     const audioData = this.base64ToArrayBuffer(part.inlineData.data);

@@ -18,82 +18,98 @@ export default function SkincareWizard() {
   const [step, setStep] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
+  const gender = (sessionStorage.getItem('wizard_gender') as 'male' | 'female') || 'female';
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const { isConnected, isSpeaking, connect, disconnect, sendMessage, isUserSpeaking } = useLiveApi();
+  const { isConnected, isSpeaking, connect, disconnect, sendMessage, sendImage, isLoading, setOnFunctionCall } = useLiveApi();
 
   const handleMicClick = () => {
     if (isConnected) {
       disconnect();
     } else {
-      connect(GEMINI_API_KEY);
+      connect(GEMINI_API_KEY, gender);
     }
   };
 
   const nextStep = () => {
-    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     setStep(s => Math.min(s + 1, 9));
   };
 
-  // Auto-advance logic: 10s after user stops speaking
+  // Listen for function calls from Gemini (go_to_next_step)
   useEffect(() => {
-    if (step === 0 || step >= 6) return; // Only for question steps
-
-    if (isUserSpeaking) {
-      if (autoAdvanceRef.current) {
-        clearTimeout(autoAdvanceRef.current);
-        autoAdvanceRef.current = null;
+    setOnFunctionCall((functionName: string, _args: any) => {
+      if (functionName === 'go_to_next_step') {
+        console.log('🔧 go_to_next_step called by Julia — advancing wizard!');
+        nextStep();
       }
-    } else {
-      // User stopped speaking, start timer
-      if (!isUserSpeaking && step > 0) {
-        autoAdvanceRef.current = setTimeout(() => {
-          console.log("Auto-advancing step...");
-          nextStep();
-        }, 10000); // 10 seconds
-      }
-    }
+    });
+  }, [setOnFunctionCall]);
 
-    return () => {
-      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
-    };
-  }, [isUserSpeaking, step]);
-
-  // Auto-connect on mount
+  // Auto-connect on mount (with delay to let any previous session fully close)
   useEffect(() => {
-    // Small delay to allow component to mount
     const timer = setTimeout(() => {
       if (!isConnected) {
-        connect(GEMINI_API_KEY);
+        connect(GEMINI_API_KEY, gender);
       }
-    }, 1000);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Sync AI with current step
+  // Sync AI with page changes (only for non-question steps that Julia doesn't control)
   useEffect(() => {
     if (!isConnected) return;
 
-    const prompts = [
-      "", // Step 0: Intro (Handled by initial greeting)
-      "المستخدمة التقطت الصورة. قولي لها: صورة جميلة! ودلوقتي قوليلي، بشرتك دهنية، جافة، مختلطة، ولا عادية؟", // Step 1
-      "قولي: تمام. طيب إيه أكتر مشكلة بتزعجك في بشرتك؟", // Step 2
-      "قولي: تمام. بتستخدمي أي منتجات للعناية بالبشرة حالياً؟", // Step 3
-      "قولي: طيب، هل بشرتك حساسة؟", // Step 4
-      "قولي: فهمت. إيه الهدف اللي عايزة توصليله مع بشرتك؟", // Step 5
-      "لقد وصلنا لصفحة المنتجات. قولى: دي المنتجات اللي اخترتها لكِ بعناية.", // Step 6
-      "لقد وصلنا لصفحة الروتين. اشرحي لها خطوات الاستخدام باختصار.", // Step 7
-    ];
-
-    if (prompts[step]) {
-      // Small delay to ensure previous audio is interrupted and state is settled
-      setTimeout(() => {
-        sendMessage(prompts[step]);
-      }, 300);
+    // Only send prompts for steps that Julia doesn't navigate to via function calling
+    let prompt = '';
+    if (step === 1) {
+      // Photo was just taken - tell Julia to start the Q&A
+      prompt = gender === 'male'
+        ? "المستخدم التقط صورته. حللي بشرته بناءً على الصورة، ثم اسأليه: بشرتك دهنية، جافة، مختلطة، ولا عادية؟ استني إجابته قبل ما تستدعي go_to_next_step."
+        : "المستخدمة التقطت صورتها. حللي بشرتها بناءً على الصورة، ثم اسأليها: بشرتك دهنية، جافة، مختلطة، ولا عادية؟ استني إجابتها قبل ما تستدعي go_to_next_step.";
+    } else if (step === 2) {
+      prompt = gender === 'male'
+        ? "ممتاز. الآن اسأليه حصرياً: ايه المشاكل اللي بتواجهك في بشرتك؟ واستني إجابته."
+        : "ممتاز. الآن اسأليها حصرياً: ايه المشاكل اللي بتواجهك في بشرتك؟ واستني إجابتها.";
+    } else if (step === 3) {
+      prompt = gender === 'male'
+        ? "عظيم. الآن اسأليه حصرياً: بتستخدم منتجات للعناية بالبشرة؟ واستني إجابته."
+        : "عظيم. الآن اسأليها حصرياً: بتستخدمي منتجات للعناية بالبشرة؟ واستني إجابتها.";
+    } else if (step === 4) {
+      prompt = "جيد جداً. الآن اسأليه/اسأليها حصرياً: بشرتك حساسة؟ واستني الإجابة.";
+    } else if (step === 5) {
+      prompt = gender === 'male'
+        ? "وأخيراً. اسأليه حصرياً: ايه النتيجة اللي عايز توصل لها؟ واستني إجابته."
+        : "وأخيراً. اسأليها حصرياً: ايه النتيجة اللي عايزة توصلي لها؟ واستني إجابتها.";
+    } else if (step === 6) {
+      prompt = gender === 'male'
+        ? "لقد وصلنا لصفحة المنتجات. قولي: دي المنتجات اللي اخترتها لك بعناية. (لا تستدعي go_to_next_step هنا)"
+        : "لقد وصلنا لصفحة المنتجات. قولي: دي المنتجات اللي اخترتها لكِ بعناية. (لا تستدعي go_to_next_step هنا)";
+    } else if (step === 7) {
+      prompt = gender === 'male'
+        ? "لقد وصلنا لصفحة الروتين. اشرحي له خطوات الاستخدام باختصار. (لا تستدعي go_to_next_step هنا)"
+        : "لقد وصلنا لصفحة الروتين. اشرحي لها خطوات الاستخدام باختصار. (لا تستدعي go_to_next_step هنا)";
     }
-  }, [step, isConnected, sendMessage]);
+
+    if (prompt) {
+      setTimeout(() => {
+        sendMessage(prompt);
+      }, 1500);
+    }
+  }, [step, isConnected, sendMessage, gender]);
+
+  // Handle the initial camera request once the wizard opens
+  // Handle the initial camera request once the wizard opens
+  let hasRequestedCamera = useRef(false);
+  useEffect(() => {
+    // Only speak the prompt once when SkincareWizard mounts, as it's unmounted until stage 3
+    if (isConnected && step === 0 && !hasRequestedCamera.current) {
+      hasRequestedCamera.current = true;
+      setTimeout(() => {
+        sendMessage(`قولي: ${gender === 'male' ? 'مستعد؟' : 'مستعدة؟'} عشان أقدر أساعدك، محتاجة أشوف بشرتك. ممكن ${gender === 'male' ? 'تفتح' : 'تفتحي'} الكاميرا عشان أقدر أحللها؟`);
+      }, 500);
+    }
+  }, [isConnected, step, sendMessage, gender])
+
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const startCamera = async () => {
     try {
@@ -119,7 +135,6 @@ export default function SkincareWizard() {
 
   const capturePhoto = () => {
     if (videoRef.current) {
-      // Create a canvas to capture the image
       const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -127,23 +142,17 @@ export default function SkincareWizard() {
 
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
-        // Get base64 string (remove data URL prefix)
         const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
         const base64Image = dataUrl.split(",")[1];
 
-        // Send to Gemini if connected
+        // Send image to Gemini (the step 1 prompt will tell Julia to analyze it)
         if (isConnected) {
           console.log("📸 Sending photo to Gemini for analysis...");
           sendImage(base64Image, "image/jpeg");
-          // Inform the model that we sent the photo
-          sendMessage("لقد أرسلت لكِ صورتي الآن. من فضلك حللي بشرتي بناءً على هذه الصورة وقولي لي ماذا ترين.");
         }
 
-        // Stop camera and proceed
         stopCamera();
-        nextStep();
-
+        nextStep(); // Advances to step 1, which triggers the analysis prompt
         console.log("Photo captured. Connected:", isConnected);
       }
     }
@@ -165,21 +174,21 @@ export default function SkincareWizard() {
 
     // We can send hidden context to the model to guide the conversation
     if (step === 2) {
-      sendMessage("لقد انتقلت للسؤال الثاني: ايه اكتر مشكلة بتواجهيها؟ (تحدثي فوراً)");
+      sendMessage(gender === 'male' ? "لقد انتقلت للسؤال الثاني: ايه اكتر مشكلة بتواجهك؟ (تحدثي فوراً)" : "لقد انتقلت للسؤال الثاني: ايه اكتر مشكلة بتواجهيها؟ (تحدثي فوراً)");
     } else if (step === 3) {
-      sendMessage("لقد انتقلت للسؤال الثالث: هل بشرتك حساسة؟ (تحدثي فوراً)");
+      sendMessage(gender === 'male' ? "لقد انتقلت للسؤال الثالث: هل بشرتك حساسة؟ (تحدثي فوراً)" : "لقد انتقلت للسؤال الثالث: هل بشرتك حساسة؟ (تحدثي فوراً)");
     } else if (step === 4) {
-      sendMessage("لقد انتقلت للسؤال الرابع: ايه الهدف اللي عايزة توصليله؟ (تحدثي فوراً)");
+      sendMessage(gender === 'male' ? "لقد انتقلت للسؤال الرابع: ايه الهدف اللي عايز توصله؟ (تحدثي فوراً)" : "لقد انتقلت للسؤال الرابع: ايه الهدف اللي عايزة توصليله؟ (تحدثي فوراً)");
     } else if (step === 6) {
-      sendMessage("لقد وصلنا لصفحة المنتجات. قولى: دي المنتجات اللي اخترتها لكِ بعناية.");
+      sendMessage(gender === 'male' ? "لقد وصلنا لصفحة المنتجات. قولى: دي المنتجات اللي اخترتها لك بعناية." : "لقد وصلنا لصفحة المنتجات. قولى: دي المنتجات اللي اخترتها لكِ بعناية.");
     } else if (step === 7) {
-      sendMessage("لقد وصلنا لصفحة الروتين. اشرحي لها خطوات الاستخدام باختصار.");
+      sendMessage(gender === 'male' ? "لقد وصلنا لصفحة الروتين. اشرحي له خطوات الاستخدام باختصار." : "لقد وصلنا لصفحة الروتين. اشرحي لها خطوات الاستخدام باختصار.");
     } else if (step === 8) {
-      sendMessage("لقد وصلنا لصفحة التأكيد (Confirmation). اسألي المستخدمة الآن: 'إيه رأيك في الروتين ده؟ هل تحبي نعتمد الروتين ولا محتاجة نغير فيه حاجة؟'");
+      sendMessage(gender === 'male' ? "لقد وصلنا لصفحة التأكيد (Confirmation). اسألي المستخدم الآن: 'إيه رأيك في الروتين ده؟ هل تحب نعتمد الروتين ولا محتاج نغير فيه حاجة؟'" : "لقد وصلنا لصفحة التأكيد (Confirmation). اسألي المستخدمة الآن: 'إيه رأيك في الروتين ده؟ هل تحبي نعتمد الروتين ولا محتاجة نغير فيه حاجة؟'");
     } else if (step === 9) {
       sendMessage("لقد وصلنا لصفحة الختام. قولي الرسالة الختامية المتفق عليها بخصوص رقم التليفون والـ QR code.");
     }
-  }, [step, isConnected, sendMessage]);
+  }, [step, isConnected, sendMessage, gender]);
 
   // Mock Products
   const products = [
@@ -227,10 +236,10 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-0 flex flex-col md:flex-row items-center justify-center gap-16 w-full"
+                className="flex flex-col md:flex-row items-center justify-center gap-16 w-full"
               >
                 <div className="shrink-0">
-                  <GradientAvatar isSpeaking={isSpeaking} />
+                  <GradientAvatar isSpeaking={isSpeaking} isLoading={isLoading} />
                 </div>
 
                 <div className="w-full max-w-sm h-[28rem] bg-gray-200 rounded-[2rem] flex flex-col items-center justify-center relative border-4 border-white shadow-xl overflow-hidden cursor-pointer group" onClick={startCamera}>
@@ -279,10 +288,10 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col md:flex-row items-center justify-center gap-16 w-full"
+                className="flex flex-col md:flex-row items-center justify-center gap-16 w-full"
               >
                 <div className="shrink-0">
-                  <GradientAvatar isSpeaking={isSpeaking} />
+                  <GradientAvatar isSpeaking={isSpeaking} isLoading={isLoading} />
                 </div>
 
                 <div
@@ -298,10 +307,10 @@ export default function SkincareWizard() {
                   >
                     <h2 className="text-3xl md:text-5xl font-arabic font-bold text-gray-900 dir-rtl leading-tight">
                       {step === 1 && <TypewriterText text="ايه طبيعة بشرتك؟" />}
-                      {step === 2 && <TypewriterText text="ايه المشاكل اللي بتواجهيها في بشرتك؟" />}
-                      {step === 3 && <TypewriterText text="بتستخدمي منتجات للعناية بالبشرة؟" />}
+                      {step === 2 && <TypewriterText text={gender === 'male' ? "ايه المشاكل اللي بتواجهك في بشرتك؟" : "ايه المشاكل اللي بتواجهيها في بشرتك؟"} />}
+                      {step === 3 && <TypewriterText text={gender === 'male' ? "بتستخدم منتجات للعناية بالبشرة؟" : "بتستخدمي منتجات للعناية بالبشرة؟"} />}
                       {step === 4 && <TypewriterText text="بشرتك حساسة؟" />}
-                      {step === 5 && <TypewriterText text="ايه النتيجة اللي عايزة توصلي لها؟" />}
+                      {step === 5 && <TypewriterText text={gender === 'male' ? "ايه النتيجة اللي عايز توصل لها؟" : "ايه النتيجة اللي عايزة توصلي لها؟"} />}
                     </h2>
                   </motion.div>
                 </div>
@@ -315,10 +324,10 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full text-center flex flex-col items-center pt-8 overflow-y-auto pb-24 pointer-events-none"
+                className="w-full min-h-screen text-center flex flex-col items-center justify-center pb-24 pointer-events-none"
               >
                 <div className="mb-0 pointer-events-auto mt-4 md:mt-8">
-                  <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} />
+                  <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} isLoading={isLoading} />
                 </div>
 
                 <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-8 pointer-events-auto">
@@ -346,11 +355,11 @@ export default function SkincareWizard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 w-full flex flex-col items-center pt-4 md:pt-8 overflow-y-auto pb-20"
+                className="w-full flex flex-col items-center pt-4 md:pt-8 pb-20"
                 onClick={nextStep}
               >
                 <div className="text-center mb-4 shrink-0 mt-4 md:mt-8">
-                  <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} />
+                  <GradientAvatar size="ml" className="mb-0" isSpeaking={isSpeaking} isLoading={isLoading} />
                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-light text-gray-900 mt-2 px-4">Your skin routine</h2>
                 </div>
 
@@ -399,7 +408,7 @@ export default function SkincareWizard() {
                 className="absolute inset-0 w-full text-center flex flex-col items-center md:justify-center overflow-y-auto pt-8 pb-24"
               >
                 <div className="shrink-0 mt-4 md:mt-0">
-                  <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                  <GradientAvatar size="ml" isSpeaking={isSpeaking} isLoading={isLoading} />
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6 mt-8 md:mt-12 w-full max-w-4xl justify-center items-center">
@@ -436,7 +445,7 @@ export default function SkincareWizard() {
                 className="absolute inset-0 w-full text-center flex flex-col items-center md:justify-center overflow-y-auto pt-8 pb-24"
               >
                 <div className="shrink-0 mt-4 md:mt-0">
-                  <GradientAvatar size="ml" isSpeaking={isSpeaking} />
+                  <GradientAvatar size="ml" isSpeaking={isSpeaking} isLoading={isLoading} />
                 </div>
 
                 <h2 className="text-3xl md:text-4xl font-light text-gray-900 my-8 max-w-2xl px-4 leading-tight">
